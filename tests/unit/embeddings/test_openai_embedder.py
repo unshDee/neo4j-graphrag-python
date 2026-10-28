@@ -50,6 +50,27 @@ def test_openai_embedder_happy_path(mock_import: Mock) -> None:
     assert res == [1.0, 2.0]
 
 
+@patch("builtins.__import__")
+def test_openai_embedder_base_url_reaches_client(mock_import: Mock) -> None:
+    """base_url (e.g. an OpenAI-compatible server) must be forwarded to openai.OpenAI."""
+    mock_openai = get_mock_openai()
+    mock_import.return_value = mock_openai
+    mock_openai.OpenAI.return_value.embeddings.create.return_value = MagicMock(
+        data=[MagicMock(embedding=[1.0, 2.0])],
+    )
+
+    base_url = "http://localhost:8000/v1"
+    embedder = OpenAIEmbeddings(
+        model="my-embedding-model", api_key="my key", base_url=base_url
+    )
+    embedder.embed_query("my text")
+
+    mock_openai.OpenAI.assert_called_once_with(api_key="my key", base_url=base_url)
+    mock_openai.OpenAI.return_value.embeddings.create.assert_called_once_with(
+        input="my text", model="my-embedding-model"
+    )
+
+
 @patch("builtins.__import__", side_effect=ImportError)
 def test_azure_openai_embedder_missing_dependency(mock_import: Mock) -> None:
     with pytest.raises(ImportError):

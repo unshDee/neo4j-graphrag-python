@@ -2,6 +2,10 @@
 
 ## Next
 
+### Added
+
+- Documented how to use `OpenAILLM` (and `OpenAIEmbeddings`) with an OpenAI-compatible endpoint in the RAG user guide: `base_url` is the API root (e.g. `.../v1`, not `.../v1/chat/completions`), `model_name` is the endpoint's own model ID, and `AzureOpenAILLM` is not meant for non-Azure endpoints.
+
 ## 1.23.0
 
 ### Changed

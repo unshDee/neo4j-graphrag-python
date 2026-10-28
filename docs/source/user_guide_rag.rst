@@ -96,6 +96,7 @@ If OpenAI cannot be used directly, there are a few available alternatives:
 - Use Mistral LLM
 - Use Cohere.
 - Use a local Ollama model.
+- Use any OpenAI-compatible endpoint.
 - Implement a custom interface.
 - Utilize any LangChain chat model.
 
@@ -245,6 +246,60 @@ it can be queried using the following:
         # host="...",  # when using a remote server
     )
     llm.invoke("say something")
+
+
+Using an OpenAI-Compatible Endpoint
+-----------------------------------
+
+Many servers and gateways (for example vLLM, Ollama's OpenAI-compatible API, or a
+LiteLLM proxy) expose the OpenAI Chat Completions API. Use the `OpenAILLM` class
+and point it at the server with `base_url`:
+
+.. code:: python
+
+    from neo4j_graphrag.llm import OpenAILLM
+
+    llm = OpenAILLM(
+        model_name="my-model",  # a model ID served by that endpoint
+        base_url="http://localhost:8000/v1",  # the API root, not .../chat/completions
+        api_key="...",  # whatever the endpoint expects; some accept any value
+    )
+    llm.invoke("say something")
+
+A few things to keep in mind:
+
+- `base_url` is the root of the API, usually ending in `/v1`. The OpenAI client
+  appends the request path itself (`/chat/completions`), so passing the full
+  `.../v1/chat/completions` URL results in requests to
+  `.../v1/chat/completions/chat/completions`.
+- `model_name` must be a model ID known to that endpoint (many servers list them
+  at `<base_url>/models`), not an OpenAI model name.
+- `OpenAILLM` calls the Chat Completions API (`client.chat.completions.create`),
+  so the endpoint must implement it. Features such as structured output
+  (`response_format`) or tool calling only work if the endpoint supports them.
+- Do not use `AzureOpenAILLM` for non-Azure endpoints: it builds an
+  `openai.AzureOpenAI` client, which uses Azure-specific URLs and authentication.
+- `OpenAIEmbeddings` forwards extra keyword arguments to `openai.OpenAI`, so it
+  also accepts `base_url`. Only use this if the endpoint serves an embedding model
+  (an `/embeddings` route); otherwise, keep the embedder on a provider that does.
+  The embedding model must also produce vectors with the dimension of your vector index.
+
+.. code:: python
+
+    from neo4j_graphrag.embeddings import OpenAIEmbeddings
+
+    embedder = OpenAIEmbeddings(
+        model="my-embedding-model",
+        base_url="http://localhost:8000/v1",
+        api_key="...",
+    )
+
+.. note::
+
+    In order to run this code, the `openai` Python package needs to be installed:
+    `pip install "neo4j_graphrag[openai]"`
+
+See :ref:`openaillm` and :ref:`llm-extensibility`.
 
 
 Using a Model from LangChain
